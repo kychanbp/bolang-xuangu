@@ -1,4 +1,4 @@
-# 选股模型 · daily A-share screen
+# 波浪选股 · daily A-share screen
 
 Every day at 06:00 Singapore time a GitHub Actions job downloads the latest community A-share
 Qlib bundle ([chenditc/investment_data](https://github.com/chenditc/investment_data)), checks

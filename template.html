@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>选股模型 每日筛选</title>
+<title>波浪选股 每日筛选</title>
 <style>
 :root{--bg:#f6f6f2;--surface:#fff;--fg:#1f2427;--muted:#5f686c;--line:#dfe1dc;--buy:#c0392b;--watch:#b5651d}
 @media (prefers-color-scheme:dark){:root{--bg:#15191b;--surface:#1d2326;--fg:#e7eae8;--muted:#9aa3a7;--line:#333b3e;--buy:#f0776a;--watch:#f0a868;color-scheme:dark}}
@@ -20,7 +20,7 @@ table{border-collapse:collapse;width:100%;font-size:.88rem;background:var(--surf
 .tbl{overflow-x:auto}.empty{color:var(--muted)}details{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px 14px}
 .small{font-size:.85rem;color:var(--muted)}
 </style></head><body><main>
-<header><h1>选股模型 · 每日筛选</h1><p class="small">数据日期 {{DAY}}（收盘）· 每天新加坡时间早上 6 点自动更新</p></header>
+<header><h1>波浪选股 · 每日筛选</h1><p class="small">数据日期 {{DAY}}（收盘）· 每天新加坡时间早上 6 点自动更新</p></header>
 <div class="stats"><div class="stat"><b>{{NB}}</b><span>今天的买点</span></div><div class="stat"><b>{{NL}}</b><span>形态形成中</span></div>
 <div class="stat"><b>{{NX}}</b><span>已跌破支撑线</span></div><div class="stat"><b>{{N}}</b><span>检查股票数</span></div></div>
 <section><h2>今天的买点</h2><div class="grid">{{BUYS}}</div></section>
