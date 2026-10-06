@@ -19,4 +19,6 @@ C3:=ND>=3 AND REF(V,ND)>=1.5*REF(MA(V,20),ND+1);
 {④ 支撑线 = 8% 阳线收盘价；第一波高点至少 2 日前；今天十字星、整根在支撑线上、离线 ≤ 5%、量 ≤ 8% 阳线一半}
 ZC:=REF(C,ND);
 C4:=HHVBARS(C,ND)>=2 AND ABS(C-O)<=O*0.01 AND L>=ZC AND C<=ZC*1.05 AND V<=0.5*REF(V,ND);
+{如需去除 ST（官方写法）：把下一行改成 XG:C1 AND C2 AND C3 AND C4 AND IF(NAMELIKE('S'),0,1) AND IF(NAMELIKE('*'),0,1);}
+{需要至少约 400 根日线：先在 选项→盘后数据下载 下载 2 年以上日线}
 XG:C1 AND C2 AND C3 AND C4;
