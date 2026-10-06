@@ -1,0 +1,22 @@
+{波浪选股 · 条件选股公式（与每日网页 kychanbp.github.io/bolang-xuangu 规则一致）}
+{① 高点 = 近 251 根 K 线最高价；低点 = 高点之后最低价；跌幅 ≥ 55%}
+NH:=HHVBARS(H,251);
+HH:=HHV(H,251);
+NL:=LLVBARS(L,NH+1);
+LL:=LLV(L,NH+1);
+C1:=NH>0 AND NL>0 AND NL<=60 AND LL<=HH*0.45;
+{② 高点前 120 日：高点 ≥ 区间最低价 2 倍，且 ≥ 3 次涨停收盘}
+ZF:=IF(CODELIKE('688') OR ((CODELIKE('300') OR CODELIKE('301')) AND DATE>=1200824),0.2,0.1);
+ZT:=C/REF(C,1)-1>=ZF-0.003 AND C>=H*0.999;
+C2:=REF(COUNT(ZT,121),NH)>=3 AND HH>=2*REF(LLV(L,121),NH) AND BARSCOUNT(C)-NH>60;
+{③ 低点当天起 10 日内第一根涨幅 ≥ 8% 的阳线，当天量 ≥ 前 20 日均量 1.5 倍}
+A8:=C/REF(C,1)-1>=0.08;
+ND:=IF(REF(A8,NL),NL,IF(NL>=1 AND REF(A8,MAX(NL-1,0)),NL-1,IF(NL>=2 AND REF(A8,MAX(NL-2,0)),NL-2,
+ IF(NL>=3 AND REF(A8,MAX(NL-3,0)),NL-3,IF(NL>=4 AND REF(A8,MAX(NL-4,0)),NL-4,IF(NL>=5 AND REF(A8,MAX(NL-5,0)),NL-5,
+ IF(NL>=6 AND REF(A8,MAX(NL-6,0)),NL-6,IF(NL>=7 AND REF(A8,MAX(NL-7,0)),NL-7,IF(NL>=8 AND REF(A8,MAX(NL-8,0)),NL-8,
+ IF(NL>=9 AND REF(A8,MAX(NL-9,0)),NL-9,IF(NL>=10 AND REF(A8,MAX(NL-10,0)),NL-10,0)))))))))));
+C3:=ND>=3 AND REF(V,ND)>=1.5*REF(MA(V,20),ND+1);
+{④ 支撑线 = 8% 阳线收盘价；第一波高点至少 2 日前；今天十字星、整根在支撑线上、离线 ≤ 5%、量 ≤ 8% 阳线一半}
+ZC:=REF(C,ND);
+C4:=HHVBARS(C,ND)>=2 AND ABS(C-O)<=O*0.01 AND L>=ZC AND C<=ZC*1.05 AND V<=0.5*REF(V,ND);
+XG:C1 AND C2 AND C3 AND C4;
