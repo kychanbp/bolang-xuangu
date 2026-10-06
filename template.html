@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>选股模型 每日筛选</title>
+<style>
+:root{--bg:#f6f6f2;--surface:#fff;--fg:#1f2427;--muted:#5f686c;--line:#dfe1dc;--buy:#c0392b;--watch:#b5651d}
+@media (prefers-color-scheme:dark){:root{--bg:#15191b;--surface:#1d2326;--fg:#e7eae8;--muted:#9aa3a7;--line:#333b3e;--buy:#f0776a;--watch:#f0a868;color-scheme:dark}}
+body{background:var(--bg);color:var(--fg);font-family:"PingFang SC","Noto Sans SC","Microsoft YaHei",sans-serif;font-size:15px;line-height:1.65;margin:0}
+main{max-width:960px;margin:0 auto;padding:28px 16px 64px;display:flex;flex-direction:column;gap:28px}
+h1{font-size:1.7rem;margin:0}h2{font-size:1.2rem;margin:0 0 8px}h3{margin:0;font-size:1rem}
+.stats{display:flex;flex-wrap:wrap;gap:10px}.stat{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:8px 14px}
+.stat b{display:block;font-size:1.3rem}.stat span{font-size:.8rem;color:var(--muted)}
+.grid{display:flex;flex-direction:column;gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:12px 14px;display:flex;flex-direction:column;gap:6px}
+.card header{display:flex;gap:10px;align-items:center}.badge{font-size:.75rem;padding:1px 8px;border-radius:999px;border:1px solid currentColor}
+.badge.buy{color:var(--buy)}.badge.watch{color:var(--watch)}.why{margin:0;font-weight:500}
+.card img{width:100%;background:#fff;border-radius:4px}
+dl{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:4px 12px;margin:0}dl div{display:flex;flex-direction:column}
+dt{font-size:.75rem;color:var(--muted)}dd{margin:0}
+table{border-collapse:collapse;width:100%;font-size:.88rem;background:var(--surface)}th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left}
+.tbl{overflow-x:auto}.empty{color:var(--muted)}details{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:10px 14px}
+.small{font-size:.85rem;color:var(--muted)}
+</style></head><body><main>
+<header><h1>选股模型 · 每日筛选</h1><p class="small">数据日期 {{DAY}}（收盘）· 每天新加坡时间早上 6 点自动更新</p></header>
+<div class="stats"><div class="stat"><b>{{NB}}</b><span>今天的买点</span></div><div class="stat"><b>{{NL}}</b><span>形态形成中</span></div>
+<div class="stat"><b>{{NX}}</b><span>已跌破支撑线</span></div><div class="stat"><b>{{N}}</b><span>检查股票数</span></div></div>
+<section><h2>今天的买点</h2><div class="grid">{{BUYS}}</div></section>
+<section><h2>最接近买点的形态</h2><p class="small">已满足规则①②③、仍在支撑线上方，但今天还差某个条件。</p><div class="grid">{{WATCH}}</div></section>
+<section><h2>全部形成中的形态</h2><div class="tbl"><table><tr><th>代码</th><th>高于支撑线</th><th>剩余天数</th><th>今天还差</th></tr>{{TABLE}}</table></div></section>
+<details><summary>规则说明</summary>
+<ol><li>高位到低位跌幅 ≥ 55%：高点为最近 250 个交易日最高价，低点为高点之后最低价。</li>
+<li>高点前 120 个交易日是牛股：高点 ≥ 区间最低价 2 倍，且 ≥ 3 次涨停收盘（主板 10%，创业板/科创板 20%）。</li>
+<li>止跌时单日涨 ≥ 8%：低点当天起 10 日内第一根 ≥ 8% 阳线，当天量 ≥ 前 20 日均量 1.5 倍；其收盘价为支撑线。</li>
+<li>缩量回调收十字星：第一波高点至少在 2 日前；今天 |收−开| ≤ 开盘价 1%，最低价 ≥ 支撑线，收盘 ≤ 支撑线 × 1.05，成交量 ≤ 8% 阳线当天的 50%；距低点 ≤ 60 个交易日。</li></ol>
+<p class="small">范围：沪深 A 股（含创业板、科创板），不含北交所；上市不满 80 个交易日的不检查。数据中没有 ST 标记，ST 股未排除。剩余天数 = 距 60 日上限还剩几天。价格为不复权收盘价。</p>
+</details>
+<p class="small">数据来源：github.com/chenditc/investment_data（社区 Qlib A 股数据）。仅供研究，不构成投资建议。历史回测（2008–2026）显示该形态平均收益与同期市场相当，没有显著超额收益。</p>
+</main></body></html>
