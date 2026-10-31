@@ -24,7 +24,16 @@ import pandas as pd
 RULES = dict(high_lookback=250, drop=0.55, bull_window=120, bull_runup=1.0, min_limitups=3,
              rebound=0.08, candle_window=10, spike=1.5, min_pullback_days=2, doji=0.01,
              near_support=0.05, vol_ratio=0.5, max_days_after_low=60, min_listed_days=60)
-WINDOW = 460          # trading days loaded per stock (enough for 250 + 120 + 20-day volume base)
+# What the web page lets a reader adjust (client-side): only the minimum drop (rule ①, 40-70%) and the
+# number of days after the low to look for the rebound candle (rule ③, 0-20). All other rules are fixed
+# at RULES. export() pre-filters with the loosest end of each range, so every setting inside these
+# ranges gives the same result as check() in Python. Lists/limits here can be widened later.
+ADJUST = dict(lookbacks=(RULES["high_lookback"],), bull_windows=(RULES["bull_window"],), max_keep=0.60,
+              min_rebound=RULES["rebound"], max_candle_window=20, max_days_after_low=RULES["max_days_after_low"],
+              min_limitups=RULES["min_limitups"], bull_runup=RULES["bull_runup"])
+EPS = 1e-6            # a value equal to a limit passes ("≤" / "≥"), not decided by float rounding noise
+SHARDS = 64           # chart data files; the page loads only the ones it needs
+WINDOW = 530          # trading days loaded per stock (enough for 250 + 250 + 20-day volume base)
 FIELDS = ["open", "high", "low", "close", "volume", "change", "factor"]
 
 
@@ -86,31 +95,31 @@ def check(j, t, p, q=RULES):
     w2 = np.arange(tH, t + 1)
     tL = int(w2[np.nanargmin(l[w2])])
     Lo = l[tL]
-    if Lo > H * (1 - q["drop"]) or tL >= t or t - tL > q["max_days_after_low"]:
+    if Lo > H * (1 - q["drop"]) * (1 + EPS) or tL >= t or t - tL > q["max_days_after_low"]:
         return None
     wb = np.arange(max(tH - q["bull_window"], start), tH + 1)
     nlu = int(p["is_lu"][wb, j].sum())
-    if nlu < q["min_limitups"] or H < (1 + q["bull_runup"]) * np.nanmin(l[wb]):
+    if nlu < q["min_limitups"] or H < (1 + q["bull_runup"]) * np.nanmin(l[wb]) * (1 - EPS):
         return None
-    ds = [k for k in range(tL, min(tL + q["candle_window"], t) + 1) if np.nan_to_num(chg[k]) >= q["rebound"]]
+    ds = [k for k in range(tL, min(tL + q["candle_window"], t) + 1) if np.nan_to_num(chg[k]) >= q["rebound"] - EPS]
     if not ds:
         return None
     d = ds[0]
-    if d < 20 or not np.isfinite(v[d]) or v[d] < q["spike"] * np.nanmean(v[d - 20:d]) or t - d < q["min_pullback_days"] + 1:
+    if d < 20 or not np.isfinite(v[d]) or v[d] < q["spike"] * np.nanmean(v[d - 20:d]) * (1 - EPS) or t - d < q["min_pullback_days"] + 1:
         return None
     S = float(c[d])
     tP = d + 1 + int(np.nanargmax(c[d + 1:t + 1]))
     fails = []
     if t - tP < q["min_pullback_days"]:
         fails.append("还在第一波上涨中")
-    if abs(c[t] - o[t]) > q["doji"] * o[t]:
+    if abs(c[t] - o[t]) > (q["doji"] + EPS) * o[t]:
         fails.append(f"不是十字星（实体 {abs(c[t] - o[t]) / o[t] * 100:.1f}%）")
-    if l[t] < S or c[t] < S:
+    if l[t] < S * (1 - EPS) or c[t] < S * (1 - EPS):
         fails.append("跌破支撑线")
-    if c[t] > S * (1 + q["near_support"]):
-        fails.append(f"离支撑线 {(c[t] / S - 1) * 100:.1f}%（需 ≤ 5%）")
-    if v[t] > q["vol_ratio"] * v[d]:
-        fails.append(f"量为 8% 阳线的 {v[t] / v[d] * 100:.0f}%（需 ≤ 50%）")
+    if c[t] > S * (1 + q["near_support"]) * (1 + EPS):
+        fails.append(f"离支撑线 {(c[t] / S - 1) * 100:.1f}%（需 ≤ {q['near_support'] * 100:g}%）")
+    if v[t] > q["vol_ratio"] * v[d] * (1 + EPS):
+        fails.append(f"量为 8% 阳线的 {v[t] / v[d] * 100:.0f}%（需 ≤ {q['vol_ratio'] * 100:g}%）")
     D = p["dates"]
     f = float(p["factor"][t, j])            # raw price = adjusted price / factor
     return dict(code=str(p["codes"][j]), j=j, tH=tH, tL=tL, d=d, tP=tP, t=t, support=S, close=float(c[t]),
@@ -119,6 +128,75 @@ def check(j, t, p, q=RULES):
                 drop=float(Lo / H - 1), n_limitup=nlu, above=float(c[t] / S - 1), days_since_low=t - tL,
                 days_left=q["max_days_after_low"] - (t - tL), buy=not fails,
                 broken=any(f.startswith("跌破") for f in fails), missing="；".join(fails))
+
+
+def g8(x):
+    return float(f"{x:.8g}")
+
+
+def export(p, t, q=RULES, a=ADJUST):
+    """Raw measures for every stock that can pass under some setting inside ADJUST.
+
+    Per stock: per look-back the high/low (positions in the arrays), the low/high ratio and, per bull
+    window, the limit-up count and run-up; daily open/high/low/close (unadjusted scale) and volume
+    from the earliest low; daily change and volume / prior 20-day mean volume for the days the 8% candle
+    can be on. The page (app.js) runs the same rules as check() on this. Second return value: daily
+    OHLCV from 30 days before the earliest high, for the page's charts (split into shards)."""
+    out, charts = [], {}
+    for j in np.flatnonzero(np.isfinite(p["close"][t]) & (t - p["first"] >= q["min_listed_days"] + 21)):
+        j = int(j)
+        o, h, l, c, v, chg = (p[k][:, j] for k in ("open", "high", "low", "close", "volume", "chg"))
+        start = max(int(p["first"][j]) + q["min_listed_days"], 21, 0)
+        lbs = {}
+        for lb in a["lookbacks"]:
+            w = np.arange(max(t - lb, start), t + 1)
+            if not np.isfinite(h[w]).any():
+                continue
+            tH = int(w[np.nanargmax(h[w])])
+            if tH >= t:
+                continue
+            w2 = np.arange(tH, t + 1)
+            tL = int(w2[np.nanargmin(l[w2])])
+            if l[tL] > h[tH] * a["max_keep"] * (1 + EPS) or tL >= t or t - tL > a["max_days_after_low"]:
+                continue
+            ks = range(tL, min(tL + a["max_candle_window"], t) + 1)
+            if not any(np.nan_to_num(chg[k]) >= a["min_rebound"] - EPS for k in ks):
+                continue
+            bull = []                      # one [limit-up count, run-up] per a["bull_windows"]
+            for bw in a["bull_windows"]:
+                wb = np.arange(max(tH - bw, start), tH + 1)
+                bull += [int(p["is_lu"][wb, j].sum()), g8(float(h[tH]) / float(np.nanmin(l[wb])))]
+            if not any(n >= a["min_limitups"] and r >= (1 + a["bull_runup"]) * (1 - EPS) for n, r in zip(bull[::2], bull[1::2])):
+                continue
+            lbs[lb] = dict(tH=tH, tL=tL, keep=g8(float(l[tL]) / float(h[tH])), bull=bull)
+        if not lbs:
+            continue
+        s0 = max(min(e["tH"] for e in lbs.values()) - 30, 0)
+        e0 = min(e["tL"] for e in lbs.values())
+        e1 = min(max(e["tL"] for e in lbs.values()) + a["max_candle_window"], t)
+        f = float(p["factor"][t, j])
+        vmax = float(np.nanmax(v[s0:t + 1]))
+        px = lambda x, k0: [None if not np.isfinite(y) else round(float(y) / f, 3) for y in x[k0:t + 1]]
+        vol = lambda k0: [None if not np.isfinite(y) else int(round(float(y) / vmax * 1e6)) for y in v[k0:t + 1]]
+        # for the rule checks: 8 significant digits (float32 data has ~7), so only exact ties are close calls
+        ck = lambda x: [None if not np.isfinite(y) else g8(float(y) / f) for y in x[e0:t + 1]]
+        vr = []
+        for k in range(e0, e1 + 1):
+            m = np.nanmean(v[k - 20:k]) if np.isfinite(v[k - 20:k]).any() else np.nan
+            vr.append(None if not (np.isfinite(m) and np.isfinite(v[k])) else g8(float(v[k]) / float(m)))
+        code = str(p["codes"][j])
+        # positions are counted back from today (0 = today)
+        out.append(dict(code=code, lb={str(lb): [t - e["tH"], t - e["tL"], e["keep"], e["bull"]] for lb, e in lbs.items()},
+                        c=ck(c), v=[None if not np.isfinite(y) else g8(float(y) / vmax) for y in v[e0:t + 1]],
+                        o=g8(float(o[t]) / f), l=g8(float(l[t]) / f),
+                        chg=[None if not np.isfinite(chg[k]) else g8(float(chg[k])) for k in range(e0, e1 + 1)],
+                        vr=vr))
+        charts[code] = dict(o=px(o, s0), h=px(h, s0), l=px(l, s0), c=px(c, s0), v=vol(s0))
+    return out, charts
+
+
+def shard(code):
+    return int(code[2:]) % SHARDS
 
 
 def chart(r, p, path):
@@ -203,6 +281,16 @@ def main():
     keep = ["code", "buy", "broken", "missing", "high_date", "low_date", "candle_date", "drop", "n_limitup", "support_px", "close_px", "above", "days_left"]
     data = dict(date=day, checked=int(checked.sum()), rules=RULES, results=[{k: r[k] for k in keep} for r in rows])
     (out / "data.json").write_text(json.dumps(data, ensure_ascii=False, indent=1))
+    D = p["dates"]
+    cal = [str(x.date()) for x in D[max(t - 300, 0):t + 1]]
+    stocks, charts = export(p, t)
+    cands = dict(date=day, checked=int(checked.sum()), rules=RULES, adjust=ADJUST, calendar=cal, shards=SHARDS, stocks=stocks)
+    (out / "cands.json").write_text(json.dumps(cands, ensure_ascii=False, separators=(",", ":"), allow_nan=False))
+    (out / "k").mkdir(exist_ok=True)
+    for i in range(SHARDS):
+        part = {c: v for c, v in charts.items() if shard(c) == i}
+        (out / "k" / f"{i}.json").write_text(json.dumps(part, separators=(",", ":"), allow_nan=False))
+    (out / "app.js").write_text((Path(__file__).parent / "app.js").read_text())
     Path(a.history).mkdir(exist_ok=True)
     pd.DataFrame(data["results"], columns=keep).to_csv(Path(a.history) / f"{day}.csv", index=False)
     print(f"{day}: checked {checked.sum()}, setups {len(rows)}, live {len(live)}, buy {sum(r['buy'] for r in rows)}")
