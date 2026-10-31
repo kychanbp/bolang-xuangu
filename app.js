@@ -43,9 +43,10 @@ if (typeof module !== "undefined") module.exports = { check };
 typeof document !== "undefined" && (() => {
   const $ = (id) => document.getElementById(id);
   // key, label, unit, min, max, step; "pct" values are shown in % and stored as fractions
-  // adjustable now: rule ① minimum drop and rule ③ days after the low (others fixed at default)
+  // adjustable now: rule ① minimum drop, rule ③ candle rise and days after the low (others fixed at default)
   const PARAMS = [
     ["①", "drop", "高点到低点的最小跌幅", "%", 40, 70, 1, "pct"],
+    ["③", "rebound", "止跌阳线最小涨幅", "%", 5, 15, 0.5, "pct"],
     ["③", "candle_window", "低点当天起几个交易日内找止跌阳线", "日", 0, 20, 1],
   ];
   let D, DEF, Q, shardCache = {};
