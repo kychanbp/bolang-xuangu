@@ -24,12 +24,12 @@ import pandas as pd
 RULES = dict(high_lookback=250, drop=0.55, bull_window=120, bull_runup=1.0, min_limitups=3,
              rebound=0.08, candle_window=10, spike=1.5, min_pullback_days=2, doji=0.01,
              near_support=0.05, vol_ratio=0.5, max_days_after_low=60, min_listed_days=60)
-# What the web page lets a reader adjust (client-side): the minimum drop (rule ①, 40-70%), the minimum
+# What the web page lets a reader adjust (client-side): the minimum drop (rule ①, 30-60%), the minimum
 # rise of the rebound candle (rule ③, 5-15%) and the number of days after the low to look for it
 # (rule ③, 0-20). All other rules are fixed
 # at RULES. export() pre-filters with the loosest end of each range, so every setting inside these
 # ranges gives the same result as check() in Python. Lists/limits here can be widened later.
-ADJUST = dict(lookbacks=(RULES["high_lookback"],), bull_windows=(RULES["bull_window"],), max_keep=0.60,
+ADJUST = dict(lookbacks=(RULES["high_lookback"],), bull_windows=(RULES["bull_window"],), max_keep=0.70,
               min_rebound=0.05, max_candle_window=20, max_days_after_low=RULES["max_days_after_low"],
               min_limitups=RULES["min_limitups"], bull_runup=RULES["bull_runup"])
 EPS = 1e-6            # a value equal to a limit passes ("≤" / "≥"), not decided by float rounding noise

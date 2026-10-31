@@ -13,7 +13,7 @@ the market over the same days (no significant excess return).
 ## Adjustable settings on the page
 
 The page has a "调整参数" panel. Right now a reader can change three numbers in `RULES`: the minimum
-drop (`drop`, rule ①, 40–70%), the minimum rise of the rebound candle (`rebound`, rule ③, 5–15%) and
+drop (`drop`, rule ①, 30–60%), the minimum rise of the rebound candle (`rebound`, rule ③, 5–15%) and
 the days after the low to look for that candle (`candle_window`, rule ③, 0–20). The result is calculated again in the browser (`app.js`). All other
 rules stay at their defaults. The settings go into the page address, so a link keeps them. The daily
 `history/` CSV always uses the default `RULES`.
