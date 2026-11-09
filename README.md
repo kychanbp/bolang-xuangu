@@ -1,9 +1,15 @@
 # 波浪选股 · daily A-share screen
 
-Every day at 06:00 Singapore time a GitHub Actions job downloads the latest community A-share
+On each trading day, after the market closes, a GitHub Actions job downloads the latest community A-share
 Qlib bundle ([chenditc/investment_data](https://github.com/chenditc/investment_data)), checks
 every Shanghai/Shenzhen stock against the rules in `screen.py`, and publishes the result page
 via GitHub Pages. Daily results are kept in `history/<date>.csv`.
+
+When it runs: the data bundle comes out at a different time each day (16:18 to 23:59 Singapore time
+in late Oct to early Nov 2026). So the job tries at 16:30, 18:30, 20:00, 22:00 and 23:30 SGT on
+weekdays, and once more at 06:00 SGT the next morning. A try stops after the download if that
+trading day is already in `history/`. GitHub can start a scheduled job late (up to 3 hours was seen).
+To refresh now, run the workflow by hand (Actions, daily-screen, Run workflow).
 
 Run locally: `python screen.py --qlib <qlib_data dir> --out site`.
 

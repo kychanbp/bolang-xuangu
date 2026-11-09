@@ -1,7 +1,16 @@
 name: daily-screen
 on:
   schedule:
-    - cron: "0 22 * * *"      # 06:00 Singapore time, after the daily data release
+    # Times are UTC. Singapore and Beijing are both UTC+8; the A-share market closes 15:00.
+    # The data bundle is published at a different time each day (seen 16:18 to 23:59 SGT),
+    # so the job tries several times after the close. A try stops early when the bundle
+    # has no new trading day yet, or when that day is already in history/.
+    - cron: "30 8 * * 1-5"    # 16:30 SGT
+    - cron: "30 10 * * 1-5"   # 18:30 SGT
+    - cron: "0 12 * * 1-5"    # 20:00 SGT
+    - cron: "0 14 * * 1-5"    # 22:00 SGT
+    - cron: "30 15 * * 1-5"   # 23:30 SGT
+    - cron: "0 22 * * *"      # 06:00 SGT next morning: last catch-up
   workflow_dispatch:
 permissions:
   contents: write
@@ -30,16 +39,33 @@ jobs:
           curl -sSL -o qlib_bin.tar.gz https://github.com/chenditc/investment_data/releases/latest/download/qlib_bin.tar.gz
           mkdir qlib_data && tar -xzf qlib_bin.tar.gz -C qlib_data --strip-components=1
           rm qlib_bin.tar.gz
+      - name: Check for a new trading day
+        id: new
+        run: |
+          # last day with real data = latest end date of an SH/SZ stock (same rule as screen.py;
+          # calendars/day.txt also lists future dates)
+          day=$(awk -F'\t' '$1 ~ /^(SH|SZ)/ && $3 > d {d=$3} END{print substr(d,1,10)}' qlib_data/instruments/all.txt)
+          echo "Latest trading day in the bundle: $day"
+          if [ "${{ github.event_name }}" = "schedule" ] && [ -f "history/$day.csv" ]; then
+            echo "history/$day.csv exists: nothing new, stop here."
+            echo "run=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
       - name: Screen
+        if: steps.new.outputs.run == 'true'
         run: python screen.py --qlib qlib_data --out site --history history
       - name: Save history
+        if: steps.new.outputs.run == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add history
           git diff --cached --quiet || (git commit -q -m "screen: $(ls history | tail -1 | cut -d. -f1)" && git push)
       - uses: actions/upload-pages-artifact@v3
+        if: steps.new.outputs.run == 'true'
         with:
           path: site
       - id: deploy
+        if: steps.new.outputs.run == 'true'
         uses: actions/deploy-pages@v4
