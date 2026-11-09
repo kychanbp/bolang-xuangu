@@ -42,7 +42,9 @@ jobs:
       - name: Check for a new trading day
         id: new
         run: |
-          day=$(awk 'NF{d=$1} END{print substr(d,1,10)}' qlib_data/calendars/day.txt)
+          # last day with real data = latest end date of an SH/SZ stock (same rule as screen.py;
+          # calendars/day.txt also lists future dates)
+          day=$(awk -F'\t' '$1 ~ /^(SH|SZ)/ && $3 > d {d=$3} END{print substr(d,1,10)}' qlib_data/instruments/all.txt)
           echo "Latest trading day in the bundle: $day"
           if [ "${{ github.event_name }}" = "schedule" ] && [ -f "history/$day.csv" ]; then
             echo "history/$day.csv exists: nothing new, stop here."
