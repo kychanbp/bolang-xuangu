@@ -15,6 +15,7 @@ Rules (literal reading of the handwritten note; defaults in RULES):
     volume <= 50% of the 8% day's volume; within 60 trading days of L.
 """
 import argparse
+from datetime import datetime, timedelta, timezone
 import json
 from pathlib import Path
 
@@ -252,7 +253,8 @@ def page(day, n_checked, rows, out):
 <div><dt>剩余天数</dt><dd>{r["days_left"]} 日</dd></div></dl></article>'''
     rows_html = "".join(f'<tr><td>{r["code"]}</td><td>{r["above"]*100:+.1f}%</td><td>{r["days_left"]}</td><td>{r["missing"]}</td></tr>' for r in live)
     tpl = (Path(__file__).parent / "template.html").read_text()
-    html = (tpl.replace("{{DAY}}", day).replace("{{N}}", f"{n_checked:,}").replace("{{NB}}", str(len(buys)))
+    updated = datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d %H:%M")
+    html = (tpl.replace("{{DAY}}", day).replace("{{UPDATED}}", updated).replace("{{N}}", f"{n_checked:,}").replace("{{NB}}", str(len(buys)))
             .replace("{{NL}}", str(len(live))).replace("{{NX}}", str(sum(r["broken"] for r in rows)))
             .replace("{{BUYS}}", "".join(card(r, "buy") for r in buys) or '<p class="empty">今天没有股票符合全部规则。</p>')
             .replace("{{WATCH}}", "".join(card(r, "watch") for r in live[:8]) or '<p class="empty">暂无。</p>')
