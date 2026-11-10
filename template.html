@@ -29,8 +29,10 @@ fieldset input,fieldset select{width:7em;font:inherit;padding:3px 6px;background
 fieldset small{color:var(--muted);font-size:.75rem}
 button{font:inherit;padding:4px 12px;border:1px solid var(--line);border-radius:4px;background:var(--surface);color:var(--fg);cursor:pointer}
 .custom{border-left:3px solid var(--watch);padding:6px 10px;background:var(--surface)}
+.updated{font-size:1.05rem;margin:4px 0}
 </style></head><body><main>
-<header><h1>波浪选股 · 每日筛选</h1><p class="small">数据日期 {{DAY}}（收盘）· 每天新加坡时间早上 6 点自动更新</p></header>
+<header><h1>波浪选股 · 每日筛选</h1><p class="updated">最新数据：<strong>{{DAY}}</strong> 收盘 · 页面更新于 {{UPDATED}}（北京/新加坡时间）</p>
+<p class="small">交易日收盘后自动更新：数据源每天发布时间不同（约 16:00–24:00），所以晚上会多次尝试，最迟第二天早上 6 点。</p></header>
 <details id="params"><summary>调整参数</summary>
 <p class="small" id="pstatus">正在加载参数数据…</p>
 <p><button type="button" id="reset" hidden>恢复默认参数</button></p>
