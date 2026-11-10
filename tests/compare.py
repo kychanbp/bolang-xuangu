@@ -31,7 +31,7 @@ def run_node(f):
 
 
 def rand_set(rng):
-    return dict(screen.RULES, drop=rng.choice([0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7]),
+    return dict(screen.RULES, drop=rng.choice([0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6]),
                 rebound=rng.choice([0.05, 0.06, 0.07, 0.075, 0.08, 0.1, 0.15]),
                 candle_window=rng.choice([0, 1, 3, 5, 10, 15, 20]))
 
